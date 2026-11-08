@@ -60,7 +60,11 @@ h2{font-size:22px}
 .field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .field label,.legend{font-size:13px;font-weight:500}
 .field small{color:var(--muted);font-size:12px}
-input[type=date]{font:500 16px var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+input[type=date]{font:500 16px var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0;max-width:100%;
+  -webkit-appearance:none;appearance:none;display:block;min-height:46px;text-align:left}
+/* iOS Safari：日期框按内容撑宽、文字居中，这里强制跟随容器宽度并左对齐 */
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
+input[type=date]::-webkit-datetime-edit{padding:0}
 input[type=date]:focus-visible,button:focus-visible,.chip input:focus-visible+span{outline:2px solid var(--seal);outline-offset:2px}
 .end-row{display:flex;gap:8px}
 .end-row input{flex:1}
@@ -105,6 +109,8 @@ input[type=date]:focus-visible,button:focus-visible,.chip input:focus-visible+sp
 .stat:nth-child(-n+2){border-bottom:1px dashed var(--line)}
 .stat b{font:600 20px var(--f-mono);font-variant-numeric:tabular-nums}
 .stat b small{font:400 13px var(--f-body);color:var(--muted);margin-left:3px}
+.stat.wide{grid-column:1/-1;border-right:0;border-top:1px dashed var(--line);flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:4px 6px}
+.stat.wide .k{letter-spacing:0;font-size:13px}
 
 .share{max-width:440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:8px}
 .share p{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;user-select:all}
@@ -124,7 +130,7 @@ input[type=date]:focus-visible,button:focus-visible,.chip input:focus-visible+sp
 .dlg-x:hover{color:var(--ink)}
 .dlg-pic{min-height:0;flex:1;display:flex;justify-content:center}
 .dlg-pic img{display:block;max-width:100%;max-height:calc(100dvh - 190px);width:auto;height:auto;border-radius:10px;box-shadow:0 10px 30px -14px rgba(0,0,0,.5);-webkit-touch-callout:default}
-.dlg-pic .busy{aspect-ratio:1080/1660;width:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;background:var(--bg);border-radius:10px}
+.dlg-pic .busy{aspect-ratio:1080/1730;width:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;background:var(--bg);border-radius:10px}
 .dlg-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .dlg-actions a.primary{text-decoration:none}
 .dlg-tip{font-size:12px;color:var(--muted);margin:0}
@@ -235,6 +241,7 @@ footer a{color:inherit;text-underline-offset:2px}
         <div class="stat"><span class="k">折合工龄</span><b id="sYears">146<small>年</small></b></div>
         <div class="stat"><span class="k">年假标准</span><b id="sLeave">5<small>天/年</small></b></div>
         <div class="stat"><span class="k">一辈子年假(525天)</span><b id="sLife">1.4<small>倍</small></b></div>
+        <div class="stat wide"><span class="k">按入职时 22 岁计算，现在已经</span><b id="sAge">168<small>岁了</small></b></div>
       </div>
     </article>
     <div class="share">
@@ -293,6 +300,7 @@ footer a{color:inherit;text-underline-offset:2px}
 (function(){
 const $ = id => document.getElementById(id);
 const LIFE = 525;
+const START_AGE = 22; // 假设入职时的年龄
 
 /* ---------- 朝代与年号 (公元前用负数，无公元 0 年) ---------- */
 const DYN = [
@@ -540,7 +548,8 @@ function todayStr(){ const t=new Date(); return `${t.getFullYear()}-${String(t.g
 // 展示用日期：跟随浏览器的语言与地区设置（parseDate 得到的是 UTC 零点，所以按 UTC 格式化）
 const DATE_FMT = new Intl.DateTimeFormat(undefined,{dateStyle:'long',timeZone:'UTC'});
 function fmtDate(ms){ return DATE_FMT.format(ms); }
-function fmtRange(a,b){ try{ return DATE_FMT.formatRange(a,b); }catch(_){ return `${fmtDate(a)} – ${fmtDate(b)}`; } }
+const DATE_CN = new Intl.DateTimeFormat('zh-CN',{year:'numeric',month:'long',day:'numeric',timeZone:'UTC'});
+function fmtCN(ms){ return DATE_CN.format(ms); }
 function fmtNum(n){ return n>=10||Number.isInteger(n) ? Math.round(n).toLocaleString('zh-CN') : n.toFixed(1).replace(/\.0$/,''); }
 function yearLabel(y){ return y<0 ? `公元前 ${-y} 年` : `${y} 年`; }
 function yearShort(y){ return y<0 ? `前${-y}` : `${y}`; }
@@ -591,13 +600,15 @@ function compute(){
   const ratio=days/LIFE;
   $('sLife').innerHTML = ratio>=1 ? `${ratio.toFixed(1)}<small>倍</small>` : `${Math.round(ratio*100)}<small>%</small>`;
 
+  const age=Math.floor(START_AGE+years);
+  $('sAge').innerHTML=`${age.toLocaleString('zh-CN')}<small>岁了</small>`;
   const lifeTxt = ratio>=1 ? `是普通人一辈子年假的 ${ratio.toFixed(1)} 倍` : `占普通人一辈子年假的 ${Math.round(ratio*100)}%`;
-  $('shareText').textContent=`我 gap 了 ${days} 天，按每年 ${leave} 天年假算，相当于从 ${yearLabel(y)}（${info.era}）就开始上班，一天没休攒到现在，${lifeTxt}。`;
+  $('shareText').textContent=`我 gap 了 ${days} 天，按每年 ${leave} 天年假算，相当于从 ${yearLabel(y)}（${info.era}）就开始上班，一天没休攒到现在，${lifeTxt}。按入职时 ${START_AGE} 岁计算，现在已经 ${age.toLocaleString('zh-CN')} 岁了。`;
   $('copyStatus').textContent='';
 
   const picks=renderEvents(y);
   renderSpan(y,endYear);
-  state={s,e,days,leave,years,ratio,y,month,info,sub:$('sub').textContent,picks};
+  state={s,e,toNow:!endVal,age,days,leave,years,ratio,y,month,info,sub:$('sub').textContent,picks};
 }
 let state=null;
 
@@ -699,12 +710,12 @@ async function ensureFonts(texts){
 }
 
 async function drawShare(st,withPhoto=true){
-  const W=1080,H=1660,X=80,BW=920;
+  const W=1080,H=1730,X=80,BW=920;
   const byDist=[...st.picks].sort((p,q)=>p.dist-q.dist);
   const ev=byDist.find(p=>evImg(p.t)) || byDist[0];
   const im=ev && evImg(ev.t);
   const yearTxt=Math.abs(st.y).toLocaleString('zh-CN',{useGrouping:Math.abs(st.y)>=10000});
-  const range=`gap：${fmtRange(st.s,st.e)}`;
+  const range=`${fmtCN(st.s)} - ${st.toNow?'至今':fmtCN(st.e)}`; // 分享图统一用中文日期
   const lifeV = st.ratio>=1 ? [st.ratio.toFixed(1),'倍'] : [String(Math.round(st.ratio*100)),'%'];
   const stats=[['gap 天数',st.days.toLocaleString('zh-CN'),'天'],['折合工龄',fmtNum(st.years),'年'],['年假标准',String(st.leave),'天/年'],['一辈子年假',...lifeV]];
   const url=siteURL(), host=url.replace(/^https?:\/\//,'').replace(/\/$/,'');
@@ -712,7 +723,7 @@ async function drawShare(st,withPhoto=true){
   await ensureFonts({
     display:'gap多久，等于多少年假？打工人工牌公元前年'+yearTxt,
     brush:st.info.era+st.info.seal,
-    body:'历代打工人·年假换算入职时间那一年前后长按识别二维码算算你的等于从哪年开始上班'+st.sub+range+stats.map(s=>s[0]+s[2]).join('')+(ev?ev.t+ev.d+evDist(ev.ey,st.y)+'约中国世界':''),
+    body:'历代打工人·年假换算入职时间那一年前后长按识别二维码算算你的等于从哪年开始上班按岁计算，现在已经了至今'+st.sub+range+stats.map(s=>s[0]+s[2]).join('')+(ev?ev.t+ev.d+evDist(ev.ey,st.y)+'约中国世界':''),
     mono:'0123456789,.%No.GAP-'+host
   });
   const photo = withPhoto && im ? await loadImg(im.src) : null;
@@ -728,7 +739,7 @@ async function drawShare(st,withPhoto=true){
   c.fillStyle=SC.ink; c.font=`400 64px ${FF.display}`; c.fillText('gap 多久，等于多少年假？',X,192);
 
   // badge
-  const BY=240,BH=840;
+  const BY=240,BH=910;
   c.save(); c.shadowColor='rgba(0,0,0,.18)'; c.shadowBlur=50; c.shadowOffsetY=24;
   rrect(c,X,BY,BW,BH,40); c.fillStyle=SC.surface; c.fill(); c.restore();
   c.save(); rrect(c,X,BY,BW,BH,40); c.clip();
@@ -767,13 +778,21 @@ async function drawShare(st,withPhoto=true){
   // stats
   const sy=BY+690;
   c.strokeStyle=SC.line; c.lineWidth=2; c.setLineDash([8,8]);
-  c.beginPath(); c.moveTo(X,sy); c.lineTo(X+BW,sy); for(let i=1;i<4;i++){ c.moveTo(X+BW/4*i,sy); c.lineTo(X+BW/4*i,BY+BH); } c.stroke(); c.setLineDash([]);
+  c.beginPath(); c.moveTo(X,sy); c.lineTo(X+BW,sy); for(let i=1;i<4;i++){ c.moveTo(X+BW/4*i,sy); c.lineTo(X+BW/4*i,sy+150); } c.moveTo(X,sy+150); c.lineTo(X+BW,sy+150); c.stroke(); c.setLineDash([]);
   stats.forEach(([k,v,u],i)=>{
     const sx=X+BW/4*i+30;
     c.fillStyle=SC.muted; c.font=`400 24px ${FF.body}`; c.fillText(k,sx,sy+48);
     c.fillStyle=SC.ink; const vs=fitFont(c,v,600,50,FF.mono,BW/4-60-c.measureText(u).width,28); c.fillText(v,sx,sy+112);
     const vw=c.measureText(v).width; c.fillStyle=SC.muted; c.font=`400 24px ${FF.body}`; c.fillText(u,sx+vw+6,sy+112);
   });
+  // 年龄行
+  {
+    const ab=sy+150+46, ageTxt=st.age.toLocaleString('zh-CN'), pre=`按入职时 ${START_AGE} 岁计算，现在已经 `;
+    let ax=X+30;
+    c.fillStyle=SC.muted; c.font=`400 26px ${FF.body}`; c.fillText(pre,ax,ab); ax+=c.measureText(pre).width;
+    c.fillStyle=SC.ink; c.font=`600 40px ${FF.mono}`; c.fillText(ageTxt,ax,ab+1); ax+=c.measureText(ageTxt).width+6;
+    c.fillStyle=SC.muted; c.font=`400 26px ${FF.body}`; c.fillText('岁了',ax,ab);
+  }
 
   // event card
   if(ev){
