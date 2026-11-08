@@ -35,7 +35,7 @@ npx serve .
 
 ## 部署到 Cloudflare Pages
 
-线上地址：<https://gap-calculator.pages.dev>
+线上地址：<https://gapcal.pages.dev>
 
 项目通过 Git 集成连接到 Cloudflare Pages，推送到 `main` 会自动部署，其他分支会生成预览链接。
 
