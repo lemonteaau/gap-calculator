@@ -112,17 +112,15 @@ input[type=date]:focus-visible,button:focus-visible,.chip input:focus-visible+sp
 .stat.wide{grid-column:1/-1;border-right:0;border-top:1px dashed var(--line);flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:4px 6px}
 .stat.wide .k{letter-spacing:0;font-size:13px}
 
-.share{max-width:440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:8px}
-.share p{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;user-select:all}
-.share-row{display:flex;gap:10px;align-items:center}
+.share{max-width:440px;width:100%;margin:0 auto}
+.share .primary{width:100%;padding:12px 18px;font-size:15px}
 .primary{font:500 14px var(--f-body);background:var(--seal);color:#fff;border:0;border-radius:10px;padding:9px 18px;cursor:pointer}
 .primary:hover{filter:brightness(1.08)}
-.status{font-size:13px;color:var(--muted)}
-.share-row .ghost{padding:9px 14px;font-size:14px}
 
 /* share image dialog */
 .dlg{border:0;padding:0;background:transparent;max-width:min(440px,calc(100vw - 32px));width:100%;max-height:calc(100dvh - 32px);color:var(--ink)}
 .dlg::backdrop{background:rgba(10,14,12,.62)}
+.dlg-card:focus{outline:none}
 .dlg-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;max-height:calc(100dvh - 32px)}
 .dlg-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .dlg-head h2{font-size:19px}
@@ -172,6 +170,7 @@ a.ev-pic:hover img{transform:scale(1.04)}
 footer{color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:14px}
 footer p{margin:0 0 4px}
 footer a{color:inherit;text-underline-offset:2px}
+footer .credit{margin-top:10px}
 
 @media (max-width:520px){
   .form{grid-template-columns:1fr}
@@ -245,17 +244,12 @@ footer a{color:inherit;text-underline-offset:2px}
       </div>
     </article>
     <div class="share">
-      <p id="shareText"></p>
-      <div class="share-row">
-        <button type="button" class="primary" id="makeImg">生成分享图</button>
-        <button type="button" class="ghost" id="copy">复制这段</button>
-        <span class="status" id="copyStatus" role="status"></span>
-      </div>
+      <button type="button" class="primary" id="makeImg">生成分享图</button>
     </div>
   </section>
 
   <dialog class="dlg" id="shareDlg" aria-labelledby="shareDlgTitle">
-    <div class="dlg-card">
+    <div class="dlg-card" tabindex="-1" autofocus>
       <div class="dlg-head">
         <h2 id="shareDlgTitle">分享图</h2>
         <button type="button" class="dlg-x" id="dlgClose" aria-label="关闭">×</button>
@@ -292,6 +286,7 @@ footer a{color:inherit;text-underline-offset:2px}
     <p>年号按通行纪年取当年主要年号；公元前 841 年以前的年代均为约数。</p>
     <p>历史配图来自 Wikimedia Commons，均为公有领域或知识共享许可，作者与许可见<a href="credits.html">图片来源</a>。</p>
     <p>项目开源在 <a href="https://github.com/lemonteaau/gap-calculator" target="_blank" rel="noopener">GitHub</a>。</p>
+    <p class="credit">Made by <a href="https://github.com/lemonteaau" target="_blank" rel="noopener">lemontea</a></p>
   </footer>
 </main>
 
@@ -603,12 +598,12 @@ function compute(){
   const age=Math.floor(START_AGE+years);
   $('sAge').innerHTML=`${age.toLocaleString('zh-CN')}<small>岁了</small>`;
   const lifeTxt = ratio>=1 ? `是普通人一辈子年假的 ${ratio.toFixed(1)} 倍` : `占普通人一辈子年假的 ${Math.round(ratio*100)}%`;
-  $('shareText').textContent=`我 gap 了 ${days} 天，按每年 ${leave} 天年假算，相当于从 ${yearLabel(y)}（${info.era}）就开始上班，一天没休攒到现在，${lifeTxt}。按入职时 ${START_AGE} 岁计算，现在已经 ${age.toLocaleString('zh-CN')} 岁了。`;
-  $('copyStatus').textContent='';
+  // 不再显示在页面上，只用作分享图的替代文字和系统分享时附带的文案
+  const shareText=`我 gap 了 ${days} 天，按每年 ${leave} 天年假算，相当于从 ${yearLabel(y)}（${info.era}）就开始上班，一天没休攒到现在，${lifeTxt}。按入职时 ${START_AGE} 岁计算，现在已经 ${age.toLocaleString('zh-CN')} 岁了。`;
 
   const picks=renderEvents(y);
   renderSpan(y,endYear);
-  state={s,e,toNow:!endVal,age,days,leave,years,ratio,y,month,info,sub:$('sub').textContent,picks};
+  state={s,e,toNow:!endVal,shareText,age,days,leave,years,ratio,y,month,info,sub:$('sub').textContent,picks};
 }
 let state=null;
 
@@ -853,7 +848,7 @@ async function openShare(){
   shareURL=URL.createObjectURL(blob);
   const name=`gap-${state.days}天-${yearShort(state.y)}年入职.png`;
   shareFile = typeof File==='function' ? new File([blob],name,{type:'image/png'}) : null;
-  pic.innerHTML=''; const img=new Image(); img.src=shareURL; img.alt=$('shareText').textContent; pic.appendChild(img);
+  pic.innerHTML=''; const img=new Image(); img.src=shareURL; img.alt=state.shareText; pic.appendChild(img);
   const save=$('dlgSave'); save.href=shareURL; save.download=name;
   $('dlgShare').hidden = !(shareFile && navigator.canShare && navigator.canShare({files:[shareFile]}));
 }
@@ -865,17 +860,12 @@ $('start').value=`${t.getFullYear()-2}-${String(t.getMonth()+1).padStart(2,'0')}
 document.querySelectorAll('input[name=leave]').forEach(r=>r.addEventListener('change',compute));
 $('clearEnd').addEventListener('click',()=>{ $('end').value=''; compute(); });
 $('form').addEventListener('submit',ev=>ev.preventDefault());
-$('copy').addEventListener('click',()=>{
-  const txt=$('shareText').textContent;
-  const fallback=()=>{ const r=document.createRange(); r.selectNodeContents($('shareText')); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); $('copyStatus').textContent='已选中，长按或 Ctrl+C 复制'; };
-  try{ navigator.clipboard.writeText(txt).then(()=>{ $('copyStatus').textContent='已复制'; },fallback); }catch(_){ fallback(); }
-});
 $('makeImg').addEventListener('click',openShare);
 $('dlgClose').addEventListener('click',()=>$('shareDlg').close());
 $('shareDlg').addEventListener('click',ev=>{ if(ev.target===ev.currentTarget) ev.currentTarget.close(); });
 $('dlgShare').addEventListener('click',()=>{
   if(!shareFile) return;
-  navigator.share({files:[shareFile],text:$('shareText').textContent}).catch(()=>{});
+  navigator.share({files:[shareFile],text:state.shareText}).catch(()=>{});
 });
 compute();
 })();
