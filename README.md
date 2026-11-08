@@ -35,17 +35,15 @@ npx serve .
 
 ## 部署到 Cloudflare Pages
 
-在 Cloudflare Dashboard → Workers & Pages → Create → Pages → Connect to Git，选择本仓库：
+线上地址：<https://gap-calculator.pages.dev>
+
+项目通过 Git 集成连接到 Cloudflare Pages，推送到 `main` 会自动部署，其他分支会生成预览链接。
+
+如果要在自己的账号上部署：Cloudflare Dashboard → Workers & Pages → Create → Pages → Connect to Git，选择本仓库：
 
 - Framework preset：None
 - Build command：留空
 - Build output directory：`/`
-
-或者用 Wrangler 直接上传：
-
-```bash
-npx wrangler pages deploy . --project-name gap-calculator
-```
 
 ## 说明
 
